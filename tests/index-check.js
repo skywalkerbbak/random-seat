@@ -125,13 +125,22 @@ const mockDoc = {
     appendChild: () => {}
   }),
   querySelector: () => createMockElement('div'),
-  querySelectorAll: () => [createMockElement('div'), createMockElement('div')]
+  querySelectorAll: () => [createMockElement('div'), createMockElement('div')],
+  addEventListener: () => {}
+};
+
+const mockStorage = {
+  _store: {},
+  getItem: function(k) { return this._store[k] || null; },
+  setItem: function(k, v) { this._store[k] = String(v); },
+  removeItem: function(k) { delete this._store[k]; }
 };
 
 const sandbox = {
   document: mockDoc,
   window: null,
   AudioContext: MockAudioContext,
+  localStorage: mockStorage,
   console,
   parseInt,
   isNaN,
@@ -139,6 +148,8 @@ const sandbox = {
   Array,
   Uint32Array,
   Date,
+  JSON,
+  Set,
   setTimeout,
   clearTimeout,
   setInterval,
@@ -205,5 +216,24 @@ sandbox.SeatAnimationController.startDraw();
 assert.strictEqual(sandbox.SeatAnimationController.isRolling, true);
 sandbox.SeatAnimationController.clearTimers();
 sandbox.SeatAnimationController.isRolling = false;
+
+// 9. Task 4 Convenience Features checks
+assert.strictEqual(typeof sandbox.saveSettings, 'function', 'saveSettings must be a function');
+assert.strictEqual(typeof sandbox.loadSettings, 'function', 'loadSettings must be a function');
+assert.strictEqual(typeof sandbox.toggleFullscreen, 'function', 'toggleFullscreen must be a function');
+
+// Test saving and loading settings
+sandbox.saveSettings();
+const savedRaw = mockStorage.getItem('seat_picker_settings');
+assert.ok(savedRaw, 'seat_picker_settings should be saved in localStorage');
+const parsed = JSON.parse(savedRaw);
+assert.strictEqual(parsed.totalStudents, 24);
+assert.strictEqual(parsed.groupCount, 6);
+
+// Test loadSettings with altered values
+mockStorage.setItem('seat_picker_settings', JSON.stringify({ totalStudents: 30, groupCount: 5 }));
+sandbox.loadSettings();
+assert.strictEqual(elements['total-students'].value, 30);
+assert.strictEqual(elements['group-count'].value, 5);
 
 console.log('All index.html integrity checks passed successfully!');

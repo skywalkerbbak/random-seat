@@ -705,6 +705,37 @@
     const groupsContainer = document.getElementById('groups-container');
     const confettiCanvas = document.getElementById('confetti-canvas');
 
+    const STORAGE_KEY = 'seat_picker_settings';
+
+    function saveSettings() {
+      try {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({
+            totalStudents: state.totalStudents,
+            groupCount: state.groupCount
+          }));
+        }
+      } catch (e) {}
+    }
+
+    function loadSettings() {
+      try {
+        if (typeof localStorage !== 'undefined') {
+          const saved = localStorage.getItem(STORAGE_KEY);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            const validation = validateInputs(parsed.totalStudents, parsed.groupCount);
+            if (validation.valid) {
+              totalStudentsInput.value = parsed.totalStudents;
+              groupCountInput.value = parsed.groupCount;
+              state.totalStudents = parsed.totalStudents;
+              state.groupCount = parsed.groupCount;
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
     /**
      * 학생 수와 모둠 수에 따라 인원 요약 배지를 업데이트하고 유효성을 반환합니다.
      */
@@ -717,11 +748,13 @@
         infoSummary.textContent = validation.error;
         infoSummary.classList.add('error');
         startBtn.disabled = true;
+        rerollBtn.disabled = true;
         return false;
       }
 
       infoSummary.classList.remove('error');
       startBtn.disabled = false;
+      rerollBtn.disabled = false;
 
       const base = Math.floor(students / groups);
       const remainder = students % groups;
@@ -1122,13 +1155,33 @@
 
         this.clearTimers();
 
-        // 40ms 고속 숫자 전환 롤링 타이머
+        // 40ms 고속 숫자 전환 롤링 타이머 (중복 번호 없는 자연스러운 슬롯머신 연출)
         let tickCount = 0;
         this.rollingTimer = setInterval(() => {
-          const rollingSeats = groupsContainer.querySelectorAll('.seat-card.rolling .seat-number');
-          rollingSeats.forEach(el => {
-            const randNum = Math.floor(Math.random() * totalStudents) + 1;
-            el.textContent = `${randNum}`;
+          const rollingSeats = Array.from(groupsContainer.querySelectorAll('.seat-card.rolling .seat-number'));
+          if (rollingSeats.length === 0) return;
+
+          // 이미 락인된 번호 목록 확인
+          const lockedNumEls = groupsContainer.querySelectorAll('.seat-card.locked .seat-number');
+          const lockedNumbers = new Set();
+          lockedNumEls.forEach(el => {
+            const num = parseInt(el.textContent, 10);
+            if (!isNaN(num)) lockedNumbers.add(num);
+          });
+
+          // 아직 락인되지 않은 남은 번호들만 추출
+          const remainingNumbers = [];
+          for (let i = 1; i <= totalStudents; i++) {
+            if (!lockedNumbers.has(i)) {
+              remainingNumbers.push(i);
+            }
+          }
+
+          // 남은 번호 풀을 무작위 셔플하여 돌아가는 자리에 순차 배정 (화면 상 중복 번호 발생 방지)
+          const shuffledPool = shuffleArray(remainingNumbers);
+          rollingSeats.forEach((el, idx) => {
+            const num = shuffledPool[idx % shuffledPool.length];
+            el.textContent = `${num}`;
           });
 
           tickCount++;
@@ -1171,9 +1224,10 @@
               SoundController.fanfare();
               ConfettiEngine.fire(3500);
 
-              startBtn.disabled = false;
-              rerollBtn.disabled = false;
+              startBtn.style.display = 'none';
               rerollBtn.style.display = 'inline-flex';
+              rerollBtn.disabled = false;
+              startBtn.disabled = false;
               totalStudentsInput.disabled = false;
               groupCountInput.disabled = false;
               this.isRolling = false;
@@ -1186,19 +1240,54 @@
       }
     };
 
+    function toggleFullscreen() {
+      try {
+        if (!document.fullscreenElement) {
+          if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen().catch(() => {});
+          }
+        } else {
+          if (document.exitFullscreen) {
+            document.exitFullscreen().catch(() => {});
+          }
+        }
+      } catch (e) {}
+    }
+
+    if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+      document.addEventListener('fullscreenchange', () => {
+        if (fullscreenBtn) {
+          if (document.fullscreenElement) {
+            fullscreenBtn.textContent = '창 화면 🗗';
+          } else {
+            fullscreenBtn.textContent = '전체화면 ⛶';
+          }
+        }
+      });
+    }
+
     if (typeof window !== 'undefined') {
       window.SoundController = SoundController;
       window.ConfettiEngine = ConfettiEngine;
       window.SeatAnimationController = SeatAnimationController;
+      window.saveSettings = saveSettings;
+      window.loadSettings = loadSettings;
+      window.toggleFullscreen = toggleFullscreen;
     }
 
     // Input Events
     totalStudentsInput.addEventListener('input', () => {
+      startBtn.style.display = 'inline-flex';
+      rerollBtn.style.display = 'none';
       renderInitialSeats();
+      saveSettings();
     });
 
     groupCountInput.addEventListener('input', () => {
+      startBtn.style.display = 'inline-flex';
+      rerollBtn.style.display = 'none';
       renderInitialSeats();
+      saveSettings();
     });
 
     startBtn.addEventListener('click', () => {
@@ -1213,13 +1302,47 @@
       SoundController.toggleMute();
     });
 
+    fullscreenBtn.addEventListener('click', () => {
+      toggleFullscreen();
+    });
+
+    // Keyboard Shortcuts (Space/Enter: 뽑기/다시뽑기, M: 음소거, F: 전체화면)
     if (typeof window !== 'undefined') {
+      window.addEventListener('keydown', (e) => {
+        const activeEl = typeof document !== 'undefined' ? document.activeElement : null;
+        const isInput = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA');
+
+        if (e.code === 'Space' || e.code === 'Enter') {
+          if (isInput) return;
+          e.preventDefault();
+          if (!SeatAnimationController.isRolling) {
+            SeatAnimationController.startDraw();
+          }
+          return;
+        }
+
+        if (isInput) return;
+
+        if (e.key === 'm' || e.key === 'M') {
+          e.preventDefault();
+          SoundController.toggleMute();
+          return;
+        }
+
+        if (e.key === 'f' || e.key === 'F') {
+          e.preventDefault();
+          toggleFullscreen();
+          return;
+        }
+      });
+
       window.addEventListener('resize', () => {
         ConfettiEngine.resize();
       });
     }
 
     // Initial load
+    loadSettings();
     renderInitialSeats();
   </script>
 </body>
