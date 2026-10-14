@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>우리 반 자리 뽑기 🎉</title>
+  <style>
+    :root {
+      --bg-board: #163b27;
+      --bg-board-dark: #0f2a1b;
+      --wood-frame: #4a2c1b;
+      --wood-frame-light: #6d4229;
+      --wood-frame-border: #321c10;
+      --chalk-white: #f8fafc;
+      --chalk-dim: rgba(248, 250, 252, 0.7);
+      --chalk-yellow: #fef08a;
+      --chalk-border: rgba(255, 255, 255, 0.2);
+      --card-bg: rgba(255, 255, 255, 0.08);
+      --card-bg-hover: rgba(255, 255, 255, 0.12);
+      --seat-bg: rgba(255, 255, 255, 0.12);
+      --seat-border: rgba(255, 255, 255, 0.35);
+      --seat-text: #ffffff;
+      --primary-btn: #22c55e;
+      --primary-btn-hover: #16a34a;
+      --reroll-btn: #3b82f6;
+      --reroll-btn-hover: #2563eb;
+      --danger-color: #f87171;
+
+      /* 모둠별 파스텔 토큰 */
+      --group-1: #6ee7b7; /* 민트 */
+      --group-2: #fda4af; /* 코랄/로즈 */
+      --group-3: #7dd3fc; /* 스카이블루 */
+      --group-4: #c084fc; /* 라벤더 */
+      --group-5: #fde047; /* 옐로우 */
+      --group-6: #fdba74; /* 피치/오렌지 */
+      --group-7: #86efac; /* 라이트그린 */
+      --group-8: #a5b4fc; /* 인디고 */
+      --group-9: #f472b6; /* 핑크 */
+      --group-10: #67e8f9; /* 시안 */
+      --group-11: #fcd34d; /* 앰버 */
+      --group-12: #cbd5e1; /* 실버 */
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    body {
+      min-height: 100vh;
+      background: radial-gradient(circle at 50% 20%, var(--bg-board) 0%, var(--bg-board-dark) 100%);
+      color: var(--chalk-white);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Pretendard", "Nanum Gothic", "Malgun Gothic", sans-serif;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* 칠판 우드 프레임 테두리 */
+    .board-container {
+      width: 100%;
+      max-width: 1380px;
+      min-height: calc(100vh - 32px);
+      background: rgba(18, 48, 32, 0.95);
+      border: 14px solid var(--wood-frame);
+      border-radius: 20px;
+      box-shadow: 
+        inset 0 0 40px rgba(0, 0, 0, 0.6),
+        0 10px 30px rgba(0, 0, 0, 0.5),
+        0 0 0 2px var(--wood-frame-border);
+      padding: 24px 28px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* 헤더 */
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: var(--chalk-white);
+      text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.6), 0 0 20px rgba(254, 240, 138, 0.2);
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* 설정 및 조작 바 */
+    .controls-wrapper {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--chalk-border);
+      border-radius: 14px;
+      padding: 16px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+      backdrop-filter: blur(4px);
+    }
+
+    .config-form {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .input-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .input-group label {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--chalk-dim);
+    }
+
+    .input-group input {
+      width: 72px;
+      padding: 8px 10px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      text-align: center;
+      border-radius: 8px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.92);
+      color: #1e293b;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .input-group input:focus {
+      border-color: #60a5fa;
+      box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.35);
+    }
+
+    .info-summary {
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      background: rgba(34, 197, 94, 0.2);
+      color: #86efac;
+      border: 1px solid rgba(134, 239, 172, 0.4);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .info-summary.error {
+      background: rgba(239, 68, 68, 0.25);
+      color: var(--danger-color);
+      border-color: rgba(248, 113, 113, 0.5);
+    }
+
+    .action-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      outline: none;
+      font-family: inherit;
+      border-radius: 10px;
+      font-weight: 700;
+      transition: transform 0.1s, background-color 0.2s, opacity 0.2s, box-shadow 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    button:active:not(:disabled) {
+      transform: scale(0.96);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    .btn-primary {
+      padding: 10px 22px;
+      font-size: 1.1rem;
+      background: var(--primary-btn);
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(34, 197, 94, 0.35);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--primary-btn-hover);
+      box-shadow: 0 6px 16px rgba(34, 197, 94, 0.5);
+    }
+
+    .btn-reroll {
+      padding: 10px 20px;
+      font-size: 1.05rem;
+      background: var(--reroll-btn);
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+    }
+
+    .btn-reroll:hover:not(:disabled) {
+      background: var(--reroll-btn-hover);
+    }
+
+    .btn-secondary {
+      padding: 9px 14px;
+      font-size: 0.95rem;
+      background: rgba(255, 255, 255, 0.15);
+      color: var(--chalk-white);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    /* 칠판 / 교탁 기준 바 */
+    .blackboard-bar {
+      width: 100%;
+      background: linear-gradient(180deg, #2b1d14 0%, #1c130d 100%);
+      color: var(--chalk-yellow);
+      border: 2px solid #5a3825;
+      border-radius: 8px;
+      padding: 10px 16px;
+      text-align: center;
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: 2px;
+      margin-bottom: 24px;
+      box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.1), 0 4px 10px rgba(0, 0, 0, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      position: relative;
+    }
+
+    .blackboard-bar::before,
+    .blackboard-bar::after {
+      content: "";
+      height: 4px;
+      flex: 1;
+      max-width: 80px;
+      background: rgba(254, 240, 138, 0.4);
+      border-radius: 2px;
+    }
+
+    /* 모둠 컨테이너 그리드 */
+    #groups-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+      width: 100%;
+      flex: 1;
+      align-content: start;
+    }
+
+    /* 모둠 카드 */
+    .group-card {
+      background: var(--card-bg);
+      border: 1px solid var(--chalk-border);
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+      position: relative;
+    }
+
+    .group-card:hover {
+      background: var(--card-bg-hover);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .group-card.group-locked {
+      animation: groupPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes groupPop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+
+    .group-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.2);
+    }
+
+    .group-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 800;
+      font-size: 1.15rem;
+      padding: 4px 12px;
+      border-radius: 8px;
+      color: #1e293b;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+
+    .group-count-badge {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--chalk-dim);
+    }
+
+    /* 모둠별 파스텔 토큰 배색 */
+    .group-card[data-group-id="1"] .group-badge { background: var(--group-1); }
+    .group-card[data-group-id="2"] .group-badge { background: var(--group-2); }
+    .group-card[data-group-id="3"] .group-badge { background: var(--group-3); }
+    .group-card[data-group-id="4"] .group-badge { background: var(--group-4); }
+    .group-card[data-group-id="5"] .group-badge { background: var(--group-5); }
+    .group-card[data-group-id="6"] .group-badge { background: var(--group-6); }
+    .group-card[data-group-id="7"] .group-badge { background: var(--group-7); }
+    .group-card[data-group-id="8"] .group-badge { background: var(--group-8); }
+    .group-card[data-group-id="9"] .group-badge { background: var(--group-9); }
+    .group-card[data-group-id="10"] .group-badge { background: var(--group-10); }
+    .group-card[data-group-id="11"] .group-badge { background: var(--group-11); }
+    .group-card[data-group-id="12"] .group-badge { background: var(--group-12); }
+
+    /* 좌석 그리드 */
+    .seats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(75px, 1fr));
+      gap: 10px;
+      width: 100%;
+    }
+
+    /* 개별 좌석 카드 */
+    .seat-card {
+      aspect-ratio: 1 / 1;
+      min-height: 72px;
+      background: var(--seat-bg);
+      border: 2px dashed var(--seat-border);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.25);
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s, border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .seat-card:hover {
+      background: rgba(255, 255, 255, 0.18);
+      border-color: rgba(255, 255, 255, 0.6);
+    }
+
+    .seat-card.rolling {
+      border-style: solid;
+      border-color: #fde047;
+      background: rgba(253, 224, 71, 0.15);
+      animation: seatPulse 0.1s infinite alternate;
+    }
+
+    .seat-card.locked {
+      border-style: solid;
+      border-color: #86efac;
+      background: rgba(34, 197, 94, 0.22);
+      box-shadow: 0 4px 12px rgba(34, 197, 94, 0.35);
+    }
+
+    @keyframes seatPulse {
+      0% { transform: scale(0.98); }
+      100% { transform: scale(1.02); }
+    }
+
+    .seat-label {
+      position: absolute;
+      top: 4px;
+      left: 6px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--chalk-dim);
+      letter-spacing: -0.2px;
+    }
+
+    .seat-number {
+      font-size: 1.7rem;
+      font-weight: 900;
+      color: var(--seat-text);
+      text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.6);
+      line-height: 1;
+    }
+
+    .seat-number.placeholder {
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 1.6rem;
+    }
+
+    /* 전체화면 폭죽 오버레이 캔버스 */
+    #confetti-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 999;
+      display: block;
+    }
+
+    /* 모바일 & 태블릿 반응형 미디어 쿼리 */
+    @media (max-width: 768px) {
+      body {
+        padding: 8px;
+      }
+
+      .board-container {
+        border-width: 8px;
+        padding: 16px 12px;
+      }
+
+      h1 {
+        font-size: 1.6rem;
+      }
+
+      .controls-wrapper {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .config-form {
+        justify-content: space-between;
+      }
+
+      .action-bar {
+        justify-content: center;
+      }
+
+      #groups-container {
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+
+      .seats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(65px, 1fr));
+      }
+
+      .seat-card {
+        min-height: 64px;
+      }
+
+      .seat-number {
+        font-size: 1.45rem;
+      }
+    }
+
+    /* A4 인쇄 최적화 스타일 */
+    @media print {
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        padding: 0;
+      }
+
+      .board-container {
+        border: none !important;
+        box-shadow: none !important;
+        background: #ffffff !important;
+        padding: 0;
+        max-width: 100% !important;
+      }
+
+      h1 {
+        color: #111827 !important;
+        text-shadow: none !important;
+        font-size: 1.8rem;
+        margin-bottom: 12px;
+      }
+
+      .controls-wrapper,
+      #confetti-canvas,
+      .action-bar {
+        display: none !important;
+      }
+
+      .blackboard-bar {
+        background: #f1f5f9 !important;
+        color: #334155 !important;
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: none !important;
+      }
+
+      #groups-container {
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 16px !important;
+      }
+
+      .group-card {
+        background: #ffffff !important;
+        border: 2px solid #94a3b8 !important;
+        box-shadow: none !important;
+        page-break-inside: avoid;
+      }
+
+      .group-badge {
+        box-shadow: none !important;
+        border: 1px solid #64748b;
+      }
+
+      .seat-card {
+        background: #f8fafc !important;
+        border: 1px solid #64748b !important;
+        box-shadow: none !important;
+      }
+
+      .seat-number {
+        color: #0f172a !important;
+        text-shadow: none !important;
+      }
+
+      .seat-label {
+        color: #64748b !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="board-container">
+    <header>
+      <h1>🎉 신나는 우리 반 자리 뽑기</h1>
+    </header>
+
+    <!-- 설정 및 액션 컨트롤 패널 -->
+    <div class="controls-wrapper">
+      <div class="config-form">
+        <div class="input-group">
+          <label for="total-students">총 학생 수</label>
+          <input type="number" id="total-students" value="24" min="2" max="60" step="1">
+          <span>명</span>
+        </div>
+
+        <div class="input-group">
+          <label for="group-count">모둠 수</label>
+          <input type="number" id="group-count" value="6" min="1" max="12" step="1">
+          <span>개</span>
+        </div>
+
+        <div id="info-summary" class="info-summary">4명씩 6개 모둠 (총 24명)</div>
+      </div>
+
+      <div class="action-bar">
+        <button type="button" id="start-btn" class="btn-primary">자리 뽑기 시작 🎲</button>
+        <button type="button" id="reroll-btn" class="btn-reroll" style="display: none;" disabled>다시 뽑기 🔄</button>
+        <button type="button" id="mute-btn" class="btn-secondary" title="단축키 M">소리 🔊</button>
+        <button type="button" id="fullscreen-btn" class="btn-secondary" title="단축키 F">전체화면 ⛶</button>
+      </div>
+    </div>
+
+    <!-- 칠판 / 교탁 기준 바 -->
+    <div class="blackboard-bar" aria-label="칠판 및 교탁 위치">
+      [ 칠판 / 교탁 (앞) ]
+    </div>
+
+    <!-- 모둠 카드 컨테이너 그리드 -->
+    <main id="groups-container">
+      <!-- renderInitialSeats에 의해 동적으로 렌더링됨 -->
+    </main>
+  </div>
+
+  <!-- 파티클 폭죽 캔버스 -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <script>
+    /* =====================================================================
+       1. CORE LOGIC (Validation, Distribution, Fisher-Yates Shuffling)
+       ===================================================================== */
+    function validateInputs(totalStudents, groupCount) {
+      const students = parseInt(totalStudents, 10);
+      const groups = parseInt(groupCount, 10);
+
+      if (isNaN(students) || isNaN(groups)) {
+        return { valid: false, error: '숫자를 올바르게 입력해 주세요.' };
+      }
+      if (students < 2 || students > 60) {
+        return { valid: false, error: '학생 수는 2명 이상 60명 이하이어야 합니다.' };
+      }
+      if (groups < 1 || groups > 12) {
+        return { valid: false, error: '모둠 수는 1개 이상 12개 이하이어야 합니다.' };
+      }
+      if (students < groups) {
+        return { valid: false, error: '학생 수는 모둠 수보다 크거나 같아야 합니다.' };
+      }
+      return { valid: true };
+    }
+
+    function distributeGroups(totalStudents, groupCount) {
+      const students = parseInt(totalStudents, 10);
+      const groups = parseInt(groupCount, 10);
+      const base = Math.floor(students / groups);
+      const remainder = students % groups;
+      const result = [];
+
+      for (let i = 0; i < groups; i++) {
+        const count = i < remainder ? base + 1 : base;
+        result.push({
+          groupId: i + 1,
+          name: `제 ${i + 1} 모둠`,
+          count
+        });
+      }
+      return result;
+    }
+
+    function shuffleArray(array) {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        let j;
+        if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+          const buf = new Uint32Array(1);
+          crypto.getRandomValues(buf);
+          j = buf[0] % (i + 1);
+        } else {
+          j = Math.floor(Math.random() * (i + 1));
+        }
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function generateShuffledSeats(totalStudents, groupCount) {
+      const students = parseInt(totalStudents, 10);
+      const groups = parseInt(groupCount, 10);
+      const groupsInfo = distributeGroups(students, groups);
+      const numbers = Array.from({ length: students }, (_, i) => i + 1);
+      const shuffledNumbers = shuffleArray(numbers);
+
+      let numIndex = 0;
+      return groupsInfo.map(group => {
+        const seats = [];
+        for (let s = 0; s < group.count; s++) {
+          seats.push({
+            seatIndex: s + 1,
+            studentNumber: shuffledNumbers[numIndex++]
+          });
+        }
+        return {
+          groupId: group.groupId,
+          name: group.name,
+          seats
+        };
+      });
+    }
+
+    /* =====================================================================
+       2. STATE & UI CONTROLLER
+       ===================================================================== */
+    const state = {
+      totalStudents: 24,
+      groupCount: 6,
+      isRolling: false,
+      isMuted: false,
+      groups: []
+    };
+
+    // DOM Elements
+    const totalStudentsInput = document.getElementById('total-students');
+    const groupCountInput = document.getElementById('group-count');
+    const infoSummary = document.getElementById('info-summary');
+    const startBtn = document.getElementById('start-btn');
+    const rerollBtn = document.getElementById('reroll-btn');
+    const muteBtn = document.getElementById('mute-btn');
+    const fullscreenBtn = document.getElementById('fullscreen-btn');
+    const groupsContainer = document.getElementById('groups-container');
+    const confettiCanvas = document.getElementById('confetti-canvas');
+
+    /**
+     * 학생 수와 모둠 수에 따라 인원 요약 배지를 업데이트하고 유효성을 반환합니다.
+     */
+    function updateInfoSummary() {
+      const students = parseInt(totalStudentsInput.value, 10);
+      const groups = parseInt(groupCountInput.value, 10);
+      const validation = validateInputs(students, groups);
+
+      if (!validation.valid) {
+        infoSummary.textContent = validation.error;
+        infoSummary.classList.add('error');
+        startBtn.disabled = true;
+        return false;
+      }
+
+      infoSummary.classList.remove('error');
+      startBtn.disabled = false;
+
+      const base = Math.floor(students / groups);
+      const remainder = students % groups;
+
+      if (remainder === 0) {
+        infoSummary.textContent = `${base}명씩 ${groups}개 모둠 (총 ${students}명)`;
+      } else {
+        const moreGroups = remainder;
+        const baseGroups = groups - remainder;
+        infoSummary.textContent = `${base + 1}명 ${moreGroups}모둠, ${base}명 ${baseGroups}모둠 (총 ${students}명)`;
+      }
+
+      state.totalStudents = students;
+      state.groupCount = groups;
+      return true;
+    }
+
+    /**
+     * 초기 및 설정 변경 시 좌석 그리드를 렌더링합니다.
+     */
+    function renderInitialSeats() {
+      const isValid = updateInfoSummary();
+      if (!isValid) {
+        groupsContainer.innerHTML = `
+          <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--danger-color); font-size: 1.2rem; font-weight: 700;">
+            ⚠️ 학생 수와 모둠 수 입력을 확인해 주세요.
+          </div>
+        `;
+        return;
+      }
+
+      const groupsInfo = distributeGroups(state.totalStudents, state.groupCount);
+      groupsContainer.innerHTML = '';
+
+      const fragment = document.createDocumentFragment();
+
+      groupsInfo.forEach(group => {
+        const card = document.createElement('section');
+        card.className = 'group-card';
+        card.setAttribute('data-group-id', group.groupId);
+        card.setAttribute('aria-label', group.name);
+
+        const header = document.createElement('div');
+        header.className = 'group-header';
+
+        const badge = document.createElement('span');
+        badge.className = 'group-badge';
+        badge.textContent = group.name;
+
+        const countBadge = document.createElement('span');
+        countBadge.className = 'group-count-badge';
+        countBadge.textContent = `(${group.count}명)`;
+
+        header.appendChild(badge);
+        header.appendChild(countBadge);
+        card.appendChild(header);
+
+        const grid = document.createElement('div');
+        grid.className = 'seats-grid';
+
+        for (let s = 1; s <= group.count; s++) {
+          const seat = document.createElement('div');
+          seat.className = 'seat-card';
+          seat.setAttribute('data-group-id', group.groupId);
+          seat.setAttribute('data-seat-index', s);
+
+          const label = document.createElement('span');
+          label.className = 'seat-label';
+          label.textContent = `${s}번 자리`;
+
+          const num = document.createElement('span');
+          num.className = 'seat-number placeholder';
+          num.textContent = '?';
+
+          seat.appendChild(label);
+          seat.appendChild(num);
+          grid.appendChild(seat);
+        }
+
+        card.appendChild(grid);
+        fragment.appendChild(card);
+      });
+
+      groupsContainer.appendChild(fragment);
+    }
+
+    // Input Events
+    totalStudentsInput.addEventListener('input', () => {
+      renderInitialSeats();
+    });
+
+    groupCountInput.addEventListener('input', () => {
+      renderInitialSeats();
+    });
+
+    // Initial load
+    renderInitialSeats();
+  </script>
+</body>
+</html>
