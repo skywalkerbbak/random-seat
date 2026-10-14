@@ -18,19 +18,21 @@ function validateInputs(totalStudents, groupCount) {
 }
 
 function distributeGroups(totalStudents, groupCount) {
-  const base = Math.floor(totalStudents / groupCount);
-  const remainder = totalStudents % groupCount;
-  const groups = [];
+  const students = parseInt(totalStudents, 10);
+  const groups = parseInt(groupCount, 10);
+  const base = Math.floor(students / groups);
+  const remainder = students % groups;
+  const result = [];
 
-  for (let i = 0; i < groupCount; i++) {
+  for (let i = 0; i < groups; i++) {
     const count = i < remainder ? base + 1 : base;
-    groups.push({
+    result.push({
       groupId: i + 1,
       name: `제 ${i + 1} 모둠`,
       count
     });
   }
-  return groups;
+  return result;
 }
 
 function shuffleArray(array) {
@@ -50,8 +52,10 @@ function shuffleArray(array) {
 }
 
 function generateShuffledSeats(totalStudents, groupCount) {
-  const groupsInfo = distributeGroups(totalStudents, groupCount);
-  const numbers = Array.from({ length: totalStudents }, (_, i) => i + 1);
+  const students = parseInt(totalStudents, 10);
+  const groups = parseInt(groupCount, 10);
+  const groupsInfo = distributeGroups(students, groups);
+  const numbers = Array.from({ length: students }, (_, i) => i + 1);
   const shuffledNumbers = shuffleArray(numbers);
 
   let numIndex = 0;
