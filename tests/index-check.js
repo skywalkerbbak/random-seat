@@ -49,45 +49,108 @@ const scriptMatch = html.match(/<script>([\s\S]*?)<\/script>/);
 assert.ok(scriptMatch, 'Missing <script> tag');
 const scriptContent = scriptMatch[1];
 
+function createMockElement(tag, id = '') {
+  return {
+    tag,
+    id,
+    value: id === 'total-students' ? '24' : id === 'group-count' ? '6' : '',
+    textContent: '',
+    innerHTML: '',
+    style: {},
+    disabled: false,
+    classList: {
+      _classes: new Set(),
+      add: function(...cls) { cls.forEach(c => this._classes.add(c)); },
+      remove: function(...cls) { cls.forEach(c => this._classes.delete(c)); },
+      contains: function(c) { return this._classes.has(c); }
+    },
+    addEventListener: () => {},
+    setAttribute: () => {},
+    appendChild: () => {},
+    querySelector: () => createMockElement('div'),
+    querySelectorAll: () => [createMockElement('div'), createMockElement('div')],
+    getContext: () => ({
+      clearRect: () => {},
+      save: () => {},
+      restore: () => {},
+      translate: () => {},
+      rotate: () => {},
+      scale: () => {},
+      fillRect: () => {}
+    })
+  };
+}
+
+class MockAudioContext {
+  constructor() {
+    this.currentTime = 0;
+    this.state = 'running';
+    this.destination = {};
+  }
+  resume() { return Promise.resolve(); }
+  createOscillator() {
+    return {
+      type: 'triangle',
+      frequency: {
+        setValueAtTime: () => {},
+        exponentialRampToValueAtTime: () => {}
+      },
+      connect: () => {},
+      start: () => {},
+      stop: () => {}
+    };
+  }
+  createGain() {
+    return {
+      gain: {
+        setValueAtTime: () => {},
+        linearRampToValueAtTime: () => {},
+        exponentialRampToValueAtTime: () => {}
+      },
+      connect: () => {}
+    };
+  }
+}
+
 const elements = {};
 const mockDoc = {
   getElementById: (id) => {
     if (!elements[id]) {
-      elements[id] = {
-        id,
-        value: id === 'total-students' ? '24' : id === 'group-count' ? '6' : '',
-        classList: {
-          add: () => {},
-          remove: () => {}
-        },
-        addEventListener: () => {},
-        setAttribute: () => {},
-        appendChild: () => {}
-      };
+      elements[id] = createMockElement('div', id);
     }
     return elements[id];
   },
-  createElement: (tag) => ({
-    tag,
-    setAttribute: () => {},
-    appendChild: () => {},
-    classList: { add: () => {}, remove: () => {} }
-  }),
+  createElement: (tag) => createMockElement(tag),
   createDocumentFragment: () => ({
     appendChild: () => {}
-  })
+  }),
+  querySelector: () => createMockElement('div'),
+  querySelectorAll: () => [createMockElement('div'), createMockElement('div')]
 };
 
 const sandbox = {
   document: mockDoc,
+  window: null,
+  AudioContext: MockAudioContext,
   console,
   parseInt,
   isNaN,
   Math,
   Array,
   Uint32Array,
+  Date,
+  setTimeout,
+  clearTimeout,
+  setInterval,
+  clearInterval,
+  requestAnimationFrame: (cb) => setTimeout(cb, 16),
+  cancelAnimationFrame: (id) => clearTimeout(id),
   crypto: crypto.webcrypto
 };
+sandbox.window = sandbox;
+sandbox.window.innerWidth = 1200;
+sandbox.window.innerHeight = 800;
+sandbox.window.addEventListener = () => {};
 
 vm.createContext(sandbox);
 vm.runInContext(scriptContent, sandbox);
@@ -105,5 +168,42 @@ const dist = sandbox.distributeGroups(25, 6);
 assert.strictEqual(dist.length, 6);
 assert.strictEqual(dist[0].count, 5);
 assert.strictEqual(dist[1].count, 4);
+
+// 6. SoundController checks
+assert.strictEqual(typeof sandbox.SoundController, 'object', 'SoundController must be defined');
+assert.strictEqual(typeof sandbox.SoundController.tick, 'function', 'SoundController.tick must be a function');
+assert.strictEqual(typeof sandbox.SoundController.lock, 'function', 'SoundController.lock must be a function');
+assert.strictEqual(typeof sandbox.SoundController.fanfare, 'function', 'SoundController.fanfare must be a function');
+assert.strictEqual(typeof sandbox.SoundController.toggleMute, 'function', 'SoundController.toggleMute must be a function');
+assert.strictEqual(typeof sandbox.SoundController.isMuted, 'boolean', 'SoundController.isMuted must be boolean');
+
+assert.strictEqual(sandbox.SoundController.isMuted, false);
+const muted = sandbox.SoundController.toggleMute();
+assert.strictEqual(muted, true);
+assert.strictEqual(sandbox.SoundController.isMuted, true);
+sandbox.SoundController.toggleMute();
+assert.strictEqual(sandbox.SoundController.isMuted, false);
+
+// Audio synth calls without throwing
+sandbox.SoundController.tick();
+sandbox.SoundController.lock();
+sandbox.SoundController.fanfare();
+
+// 7. ConfettiEngine checks
+assert.strictEqual(typeof sandbox.ConfettiEngine, 'object', 'ConfettiEngine must be defined');
+assert.strictEqual(typeof sandbox.ConfettiEngine.fire, 'function', 'ConfettiEngine.fire must be a function');
+
+sandbox.ConfettiEngine.fire(50);
+assert.strictEqual(sandbox.ConfettiEngine.isActive, true);
+
+// 8. SeatAnimationController checks
+assert.strictEqual(typeof sandbox.SeatAnimationController, 'object', 'SeatAnimationController must be defined');
+assert.strictEqual(typeof sandbox.SeatAnimationController.startDraw, 'function', 'SeatAnimationController.startDraw must be a function');
+assert.strictEqual(typeof sandbox.SeatAnimationController.isRolling, 'boolean', 'SeatAnimationController.isRolling must be boolean');
+
+sandbox.SeatAnimationController.startDraw();
+assert.strictEqual(sandbox.SeatAnimationController.isRolling, true);
+sandbox.SeatAnimationController.clearTimers();
+sandbox.SeatAnimationController.isRolling = false;
 
 console.log('All index.html integrity checks passed successfully!');
